@@ -1,0 +1,53 @@
+From a6a93115c1b25d2de3e7f47a39a1fcc20fb240ac Mon Sep 17 00:00:00 2001
+From: David Reiss <dreiss@facebook.com>
+Date: Mon, 30 Mar 2009 18:01:37 -0700
+Subject: [PATCH] python: Minor cleanup of protocols - don't use "str" as a variable
+
+---
+ lib/py/src/protocol/TBinaryProtocol.py |    9 ++++-----
+ lib/py/src/protocol/TProtocol.py       |    2 +-
+ 2 files changed, 5 insertions(+), 6 deletions(-)
+
+diff --git a/lib/py/src/protocol/TBinaryProtocol.py b/lib/py/src/protocol/TBinaryProtocol.py
+index db1a7a4..6bfef54 100644
+--- a/lib/py/src/protocol/TBinaryProtocol.py
++++ b/lib/py/src/protocol/TBinaryProtocol.py
+@@ -118,9 +118,9 @@ class TBinaryProtocol(TProtocolBase):
+     buff = pack("!d", dub)
+     self.trans.write(buff)
+ 
+-  def writeString(self, str):
+-    self.writeI32(len(str))
+-    self.trans.write(str)
++  def writeString(self, s):
++    self.writeI32(len(s))
++    self.trans.write(s)
+ 
+   def readMessageBegin(self):
+     sz = self.readI32()
+@@ -216,8 +216,7 @@ class TBinaryProtocol(TProtocolBase):
+ 
+   def readString(self):
+     len = self.readI32()
+-    str = self.trans.readAll(len)
+-    return str
++    return self.trans.readAll(len)
+ 
+ 
+ class TBinaryProtocolFactory:
+diff --git a/lib/py/src/protocol/TProtocol.py b/lib/py/src/protocol/TProtocol.py
+index be3cb14..4239bb5 100644
+--- a/lib/py/src/protocol/TProtocol.py
++++ b/lib/py/src/protocol/TProtocol.py
+@@ -97,7 +97,7 @@ class TProtocolBase:
+   def writeDouble(self, dub):
+     pass
+ 
+-  def writeString(self, str):
++  def writeString(self, s):
+     pass
+ 
+   def readMessageBegin(self):
+-- 
+1.5.4.3
+

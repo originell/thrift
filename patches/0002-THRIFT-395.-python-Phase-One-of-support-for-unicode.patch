@@ -1,0 +1,98 @@
+From a2d04f41d27d2070aae719adda7dd8cc73aa52fd Mon Sep 17 00:00:00 2001
+From: David Reiss <dreiss@facebook.com>
+Date: Mon, 30 Mar 2009 18:02:22 -0700
+Subject: [PATCH] THRIFT-395. python: Phase One of support for unicode strings
+
+This simply makes the (de)serialization code distinguish between
+string and binary fields.
+---
+ compiler/cpp/src/generate/t_py_generator.cc |   12 ++++++++++--
+ lib/py/src/protocol/TBinaryProtocol.py      |   10 ++++++++--
+ lib/py/src/protocol/TProtocol.py            |    6 ++++++
+ 3 files changed, 24 insertions(+), 4 deletions(-)
+
+diff --git a/compiler/cpp/src/generate/t_py_generator.cc b/compiler/cpp/src/generate/t_py_generator.cc
+index e52c2da..b1aacfe 100644
+--- a/compiler/cpp/src/generate/t_py_generator.cc
++++ b/compiler/cpp/src/generate/t_py_generator.cc
+@@ -1719,7 +1719,11 @@ void t_py_generator::generate_deserialize_field(ofstream &out,
+           name;
+         break;
+       case t_base_type::TYPE_STRING:
+-        out << "readString();";
++        if (((t_base_type*)type)->is_binary()) {
++          out << "readBinary();";
++        } else {
++          out << "readString();";
++        }
+         break;
+       case t_base_type::TYPE_BOOL:
+         out << "readBool();";
+@@ -1913,7 +1917,11 @@ void t_py_generator::generate_serialize_field(ofstream &out,
+           "compiler error: cannot serialize void field in a struct: " + name;
+         break;
+       case t_base_type::TYPE_STRING:
+-        out << "writeString(" << name << ")";
++        if (((t_base_type*)type)->is_binary()) {
++          out << "writeBinary(" << name << ")";
++        } else {
++          out << "writeString(" << name << ")";
++        }
+         break;
+       case t_base_type::TYPE_BOOL:
+         out << "writeBool(" << name << ")";
+diff --git a/lib/py/src/protocol/TBinaryProtocol.py b/lib/py/src/protocol/TBinaryProtocol.py
+index 6bfef54..1aa4e25 100644
+--- a/lib/py/src/protocol/TBinaryProtocol.py
++++ b/lib/py/src/protocol/TBinaryProtocol.py
+@@ -119,8 +119,11 @@ class TBinaryProtocol(TProtocolBase):
+     self.trans.write(buff)
+ 
+   def writeString(self, s):
+-    self.writeI32(len(s))
+-    self.trans.write(s)
++    self.writeBinary(s)
++
++  def writeBinary(self, bin):
++    self.writeI32(len(bin))
++    self.trans.write(bin)
+ 
+   def readMessageBegin(self):
+     sz = self.readI32()
+@@ -215,6 +218,9 @@ class TBinaryProtocol(TProtocolBase):
+     return val
+ 
+   def readString(self):
++    return self.readBinary()
++
++  def readBinary(self):
+     len = self.readI32()
+     return self.trans.readAll(len)
+ 
+diff --git a/lib/py/src/protocol/TProtocol.py b/lib/py/src/protocol/TProtocol.py
+index 4239bb5..a432570 100644
+--- a/lib/py/src/protocol/TProtocol.py
++++ b/lib/py/src/protocol/TProtocol.py
+@@ -100,6 +100,9 @@ class TProtocolBase:
+   def writeString(self, s):
+     pass
+ 
++  def writeBinary(self, bin):
++    pass
++
+   def readMessageBegin(self):
+     pass
+ 
+@@ -157,6 +160,9 @@ class TProtocolBase:
+   def readString(self):
+     pass
+ 
++  def readBinary(self):
++    pass
++
+   def skip(self, type):
+     if type == TType.STOP:
+       return
+-- 
+1.5.4.3
+

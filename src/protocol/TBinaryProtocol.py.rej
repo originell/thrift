@@ -1,0 +1,17 @@
+***************
+*** 119,124 ****
+      self.trans.write(buff)
+  
+    def writeString(self, s):
+      self.writeBinary(s)
+  
+    def writeBinary(self, bin):
+--- 119,126 ----
+      self.trans.write(buff)
+  
+    def writeString(self, s):
++     if type(s) is unicode:
++       s = s.encode('utf-8')
+      self.writeBinary(s)
+  
+    def writeBinary(self, bin):

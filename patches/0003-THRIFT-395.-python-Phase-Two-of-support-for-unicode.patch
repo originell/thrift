@@ -1,0 +1,69 @@
+From ae1b9b03c53d75368a1fc4abe60522b329c66fed Mon Sep 17 00:00:00 2001
+From: David Reiss <dreiss@facebook.com>
+Date: Mon, 30 Mar 2009 18:02:22 -0700
+Subject: [PATCH] THRIFT-395. python: Phase Two of support for unicode strings
+
+Make TBinaryProtocol[Accelerated] encode unicode objects with UTF-8
+if they are to be serialized as strings.
+
+Note that the fastbinary extension module doesn't distinguish between
+string and binary fields, so TBinaryProtocolAccelerated will encode
+unicode objects even when they appear in binary fields.
+---
+ lib/py/src/protocol/TBinaryProtocol.py |    2 ++
+ lib/py/src/protocol/fastbinary.c       |   20 ++++++++++++++++++--
+ 2 files changed, 20 insertions(+), 2 deletions(-)
+
+diff --git a/lib/py/src/protocol/TBinaryProtocol.py b/lib/py/src/protocol/TBinaryProtocol.py
+index 1aa4e25..8f5d764 100644
+--- a/lib/py/src/protocol/TBinaryProtocol.py
++++ b/lib/py/src/protocol/TBinaryProtocol.py
+@@ -119,6 +119,8 @@ class TBinaryProtocol(TProtocolBase):
+     self.trans.write(buff)
+ 
+   def writeString(self, s):
++    if type(s) is unicode:
++      s = s.encode('utf-8')
+     self.writeBinary(s)
+ 
+   def writeBinary(self, bin):
+diff --git a/lib/py/src/protocol/fastbinary.c b/lib/py/src/protocol/fastbinary.c
+index 67b215a..4552a44 100644
+--- a/lib/py/src/protocol/fastbinary.c
++++ b/lib/py/src/protocol/fastbinary.c
+@@ -399,14 +399,30 @@ output_val(PyObject* output, PyObject* value, TType type, PyObject* typeargs) {
+   }
+ 
+   case T_STRING: {
+-    Py_ssize_t len = PyString_Size(value);
++    bool is_unicode = false;
++    PyObject* strval = value;
++
++    if (value->ob_type == &PyUnicode_Type) {
++      is_unicode = true;
++      strval = PyUnicode_AsUTF8String(value);
++      if (strval == NULL) {
++        return false;
++      }
++    }
++
++    Py_ssize_t len = PyString_Size(strval);
+ 
+     if (!check_ssize_t_32(len)) {
+       return false;
+     }
+ 
+     writeI32(output, (int32_t) len);
+-    PycStringIO->cwrite(output, PyString_AsString(value), (int32_t) len);
++    PycStringIO->cwrite(output, PyString_AsString(strval), (int32_t) len);
++
++    if (is_unicode) {
++      Py_DECREF(strval);
++    }
++
+     break;
+   }
+ 
+-- 
+1.5.4.3
+
