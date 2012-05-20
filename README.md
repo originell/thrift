@@ -6,6 +6,9 @@ For some reason (yet not known to me) the unicode handling patches from 0.4.0
 are not present in 0.8.0 anymore, therefore inserting strings with unicode
 characters might result in a UnicodeEncodeError in fastbinary.
 
+*Update*: As of thrift 0.9, the unicode bug should be fixed. I'm leaving this
+here in case you are, for some reason, damned to keep on using 0.8.
+
 See https://issues.apache.org/jira/browse/THRIFT-1460 for more info and updates
 on this.
 
